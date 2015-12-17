@@ -8,6 +8,9 @@ from ..config import DEFAULT_CUSTOM_TAG_NAME
 
 from time import sleep
 
+import socket
+
+
 
 def get_master_reservations(config):
     return _get_instances_by_role(config, DEFAULT_MASTER_ROLE_NAME)
@@ -26,6 +29,43 @@ def get_master_ip_address(config):
 def get_slave_reservations(config):
     return _get_instances_by_role(config, DEFAULT_SLAVE_ROLE_NAME)
 
+def get_slave_ip_addresses(config):
+    addresses = []
+    reservations = get_slave_reservations(config)
+    if reservations:
+        for reservation in reservations:
+            for instance in reservation.instances:
+                if instance.ip_address and instance.state == 'running':
+                    addresses.append({
+                        "ip": instance.ip_address,
+                        "ssh_ready": False
+                    })
+    return addresses
+
+def wait_for_slave_ssh(config):
+    port = 22
+    addresses = get_slave_ip_addresses(config)
+    working_addresses = 0
+    print "Waiting for SSH connectivity to %d addresses" %(len(addresses),)
+
+    while True:
+        sleep(5)
+        for address in addresses:
+            if address['ssh_ready'] == True:
+                continue
+            try:
+                s = socket.socket()
+                s.connect((address['ip'], port))
+                s.close()
+                print "%s is ready for action" % (address['ip'])
+                working_addresses = working_addresses + 1
+                address['ssh_ready'] = True
+            except Exception,e:
+                s.close()
+
+        if working_addresses == len(addresses):
+            print "All slaves are responding to SSH"
+            return
 
 def create_master(config):
     return _run_instances_from_config(config, DEFAULT_MASTER_ROLE_NAME)
