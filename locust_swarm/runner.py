@@ -21,6 +21,7 @@ from providers.amazon import get_slave_reservations
 from providers.amazon import create_master
 from providers.amazon import create_slave
 from providers.amazon import update_master_security_group
+from providers.amazon import wait_for_slave_ssh
 import time
 
 __all__ = [
@@ -76,6 +77,12 @@ def swarm_up_master(args):
     _disconnect_fabric()
 
 
+def swarm_redeploy_master(args):
+    logging.info("Redeploying the swarm master")
+    cfg = get_config(args.config)
+
+
+
 def swarm_up_slaves(args):
     logging.info("Bringing up {0} swarm slaves".format(args.num_slaves))
 
@@ -97,8 +104,7 @@ def swarm_up_slaves(args):
 
     update_master_security_group(cfg)
 
-    # TODO: Hack for now, should check for ssh-ability
-    time.sleep(5)
+    wait_for_slave_ssh(cfg)
 
     _update_role_defs(get_slave_reservations(cfg), 'slave')
     env.user = cfg.get('fabric', 'user', None)
@@ -120,6 +126,7 @@ def _bootstrap_master(bootstrap_dir_path):
     _bootstrap(abs_bootstrap_dir_path)
 
     dir_name = os.path.basename(abs_bootstrap_dir_path)
+    run("killall locust")
     run("nohup locust -f /tmp/locust/{0}/locustfile.py \
         --master >& /dev/null < /dev/null &".format(dir_name), pty=False)
 
@@ -130,6 +137,7 @@ def _bootstrap_slave(bootstrap_dir_path, master_ip_address):
     _bootstrap(abs_bootstrap_dir_path)
 
     dir_name = os.path.basename(abs_bootstrap_dir_path)
+    run("killall locust")
     run("nohup locust -f /tmp/locust/{0}/locustfile.py --slave \
         --master-host={1} >& /dev/null < /dev/null &".
         format(dir_name, master_ip_address), pty=False)
