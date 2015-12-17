@@ -77,11 +77,42 @@ def swarm_up_master(args):
     _disconnect_fabric()
 
 
-def swarm_redeploy_master(args):
+def swarm_reset_master(args):
     logging.info("Redeploying the swarm master")
     cfg = get_config(args.config)
 
+    _update_role_defs(get_master_reservations(cfg), 'master')
+    env.user = cfg.get('fabric', 'user', None)
+    env.key_filename = cfg.get('fabric', 'key_filename', None)
 
+    is_fabricable(env.roledefs['master'][0])
+
+    execute(_bootstrap_master, args.directory)
+    _disconnect_fabric()
+
+
+def swarm_reset_slaves(args):
+    logging.info("Redeploying the swarm slaves")
+    cfg = get_config(args.config)
+
+    master_ip_address = get_master_ip_address(cfg)
+
+    if not master_ip_address:
+        raise Exception("Unable to restart slaves without a master. Please "
+                        "bring up a master first.")
+
+    _update_role_defs(get_slave_reservations(cfg), 'slave')
+    env.user = cfg.get('fabric', 'user', None)
+    env.key_filename = cfg.get('fabric', 'key_filename', None)
+    env.parallel = True
+
+    execute(_bootstrap_slave, args.directory, master_ip_address)
+    _disconnect_fabric()
+
+
+def swarm_reset(args):
+    swarm_reset_master(args)
+    swarm_reset_slaves(args)
 
 def swarm_up_slaves(args):
     logging.info("Bringing up {0} swarm slaves".format(args.num_slaves))
@@ -126,7 +157,7 @@ def _bootstrap_master(bootstrap_dir_path):
     _bootstrap(abs_bootstrap_dir_path)
 
     dir_name = os.path.basename(abs_bootstrap_dir_path)
-    run("killall locust")
+    run("killall locust || true")
     run("nohup locust -f /tmp/locust/{0}/locustfile.py \
         --master >& /dev/null < /dev/null &".format(dir_name), pty=False)
 
@@ -137,7 +168,7 @@ def _bootstrap_slave(bootstrap_dir_path, master_ip_address):
     _bootstrap(abs_bootstrap_dir_path)
 
     dir_name = os.path.basename(abs_bootstrap_dir_path)
-    run("killall locust")
+    run("killall locust || true")
     run("nohup locust -f /tmp/locust/{0}/locustfile.py --slave \
         --master-host={1} >& /dev/null < /dev/null &".
         format(dir_name, master_ip_address), pty=False)

@@ -16,6 +16,9 @@ from locust_swarm.runner import swarm_down_slaves
 from locust_swarm.runner import swarm_up
 from locust_swarm.runner import swarm_up_master
 from locust_swarm.runner import swarm_up_slaves
+from locust_swarm.runner import swarm_reset
+from locust_swarm.runner import swarm_reset_master
+from locust_swarm.runner import swarm_reset_slaves
 
 
 __all__ = ['main']
@@ -77,6 +80,33 @@ def init_argparser():
         default=DEFAULT_MASTER_BOOTSTRAP_DIR,
         help='directory that contains all the locust master bootstrap files')
     swarm_up_master_cmd.set_defaults(func=swarm_up_master)
+
+    swarm_reset_parser = cmd_subparser.add_parser(
+        'reset', parents=[common],
+        help='restarting an existing swarm',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    swarm_reset_options = swarm_reset_parser.add_subparsers(
+        title='supported roles', metavar="<roles>")
+
+    swarm_reset_master_cmd = swarm_reset_options.add_parser(
+        'master', parents=[common],
+        help='redeploys and restarts locust master',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    swarm_reset_master_cmd.add_argument(
+        '-d', '--directory', type=str,
+        default=DEFAULT_MASTER_BOOTSTRAP_DIR,
+        help='directory that contains all the locust master bootstrap files')
+    swarm_reset_master_cmd.set_defaults(func=swarm_reset_master)
+
+    swarm_reset_slave_cmd = swarm_reset_options.add_parser(
+        'slaves', parents=[common],
+        help='resetting locust slaves',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    swarm_reset_slave_cmd.add_argument(
+        '-d', '--directory', type=str,
+        default=DEFAULT_SLAVE_BOOTSTRAP_DIR,
+        help='directory that contains all the locust slave bootstrap files')
+    swarm_reset_slave_cmd.set_defaults(func=swarm_reset_slaves)
 
     swarm_down_parser = cmd_subparser.add_parser(
         'down', parents=[common],
