@@ -9,6 +9,7 @@ then
   # TODO: The upgrade screws up the directory of PIP for some reason
   sudo /usr/local/bin/pip install -r /tmp/locust/bootstrap-master/requirements.txt
 elif [ -n "$(command -v apt-get)" ]
+then
   sudo apt-get update -y
   sudo apt-get upgrade -y
   sudo apt-get install python -y
