@@ -158,7 +158,9 @@ def _bootstrap_master(bootstrap_dir_path):
 
     dir_name = os.path.basename(abs_bootstrap_dir_path)
     run("killall locust || true")
-    run("nohup locust -f /tmp/locust/{0}/locustfile.py \
+    run("killall python || true")
+    run("source ve/bin/activate")
+    run("nohup ~/ve/bin/python /usr/local/bin/locust -f /tmp/locust/{0}/locustfile.py \
         --master >& /dev/null < /dev/null &".format(dir_name), pty=False)
 
 
@@ -169,7 +171,9 @@ def _bootstrap_slave(bootstrap_dir_path, master_ip_address):
 
     dir_name = os.path.basename(abs_bootstrap_dir_path)
     run("killall locust || true")
-    run("nohup locust -f /tmp/locust/{0}/locustfile.py --slave \
+    run("killall python || true")
+    run("source ve/bin/activate")
+    run("nohup ~/ve/bin/python /usr/local/bin/locust -f /tmp/locust/{0}/locustfile.py --slave \
         --master-host={1} >& /dev/null < /dev/null &".
         format(dir_name, master_ip_address), pty=False)
 
